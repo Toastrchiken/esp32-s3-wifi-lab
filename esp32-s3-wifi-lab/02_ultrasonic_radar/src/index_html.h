@@ -1,0 +1,360 @@
+// AUTO-GENERATED from web/index.html by tools/embed_html.py - do not edit.
+#pragma once
+#include <Arduino.h>
+static const char INDEX_HTML[] PROGMEM = R"rawliteral(
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>ESP32 Radar</title>
+<style>
+  :root{--bg:#0b0f0c;--panel:#121a14;--line:#1f2d22;--fg:#d6e8da;--dim:#7d9483;--g:#39ff7a;--o:#ffb020;--r:#ff3b3b;--b:#4aa8ff}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  header{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:5}
+  header h1{font-size:17px;margin:0;flex:1;letter-spacing:.5px}
+  .pill{padding:3px 10px;border-radius:999px;font-weight:700;font-size:12px;letter-spacing:.8px;background:#1d2a21;color:var(--dim)}
+  .pill.armed{background:#3a2a06;color:var(--o)} .pill.alarm{background:var(--r);color:#fff;animation:fl .6s infinite}
+  .pill.learn{background:#0d2440;color:var(--b)}
+  @keyframes fl{50%{opacity:.35}}
+  .dot{width:10px;height:10px;border-radius:50%;background:var(--r)} .dot.ok{background:var(--g)}
+  #banner{display:none;background:var(--r);color:#fff;padding:12px 14px;font-weight:700;align-items:center;gap:10px}
+  #banner.show{display:flex} #banner span{flex:1}
+  main{max-width:640px;margin:0 auto;padding:10px}
+  canvas{width:100%;display:block;background:#050806;border:1px solid var(--line);border-radius:10px;touch-action:none}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+  .stat b{display:block;font-size:18px;font-variant-numeric:tabular-nums} .stat small{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.6px}
+  section{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:10px 0}
+  section h2{font-size:13px;margin:0 0 8px;color:var(--dim);text-transform:uppercase;letter-spacing:1px}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  button{flex:1;min-width:80px;padding:11px 8px;border-radius:8px;border:1px solid var(--line);background:#1a261d;color:var(--fg);font-weight:600;font-size:14px}
+  button:active{transform:scale(.97)} button.g{border-color:#2c6b41;color:var(--g)} button.o{border-color:#7a5a12;color:var(--o)} button.r{border-color:#7a2020;color:var(--r)} button.b{border-color:#1f4d7a;color:var(--b)}
+  input[type=range]{width:100%;accent-color:var(--g)}
+  label{font-size:13px;color:var(--dim)} select,input[type=number]{background:#0d140f;color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px;width:100%}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  #events{max-height:220px;overflow:auto;font-variant-numeric:tabular-nums}
+  .ev{display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding:6px 0;font-size:14px}
+  .ev .t{color:var(--r);font-weight:600} .muted{color:var(--dim);font-size:13px}
+  #toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#222;color:#fff;padding:8px 14px;border-radius:8px;display:none;z-index:9}
+</style>
+</head>
+<body>
+<header>
+  <h1>ESP32 RADAR</h1>
+  <span id="pill" class="pill">DISARMED</span>
+  <span id="conn" class="dot" title="connection"></span>
+</header>
+<div id="banner"><span id="bannerText">INTRUDER DETECTED</span><button class="r" style="flex:0;background:#fff" onclick="ack()">ACK</button></div>
+
+<main>
+  <canvas id="radar"></canvas>
+
+  <div class="stats">
+    <div class="stat"><small>Bearing</small><b id="sAngle">–</b></div>
+    <div class="stat"><small>Range</small><b id="sDist">–</b></div>
+    <div class="stat"><small>Mode</small><b id="sMode">–</b></div>
+    <div class="stat"><small>Wi-Fi</small><b id="sRssi">–</b></div>
+  </div>
+
+  <section>
+    <h2>Scan</h2>
+    <div class="row">
+      <button class="g" onclick="cmd('c=scan')">Scan</button>
+      <button onclick="cmd('c=stop')">Stop</button>
+      <button onclick="cmd('c=release')">Release servo</button>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <label style="flex:1">Display range
+        <select id="range" onchange="maxRange=+this.value">
+          <option value="100">1 m</option><option value="200" selected>2 m</option>
+          <option value="300">3 m</option><option value="400">4 m</option>
+        </select>
+      </label>
+      <label style="flex:1"><input type="checkbox" id="flip"> Mirror left/right</label>
+    </div>
+  </section>
+
+  <section>
+    <h2>Aim sensor</h2>
+    <input type="range" id="aim" min="0" max="180" step="1" value="90">
+    <div class="row muted"><span style="flex:1">0°</span><span id="aimVal">90°</span><span style="flex:1;text-align:right">180°</span></div>
+  </section>
+
+  <section>
+    <h2>Security</h2>
+    <div class="row">
+      <button class="b" onclick="cmd('c=learn')">Learn room</button>
+      <button class="o" onclick="cmd('c=arm')">Arm</button>
+      <button onclick="cmd('c=disarm')">Disarm</button>
+    </div>
+    <p class="muted" id="secInfo" style="margin:8px 0 4px">Clear the area, then press Learn room (3 sweeps).</p>
+    <div class="grid">
+      <label>Threshold (cm)<input type="number" id="thr" min="5" max="200" value="25" onchange="cmd('c=set&thr='+this.value)"></label>
+      <label style="align-self:end"><input type="checkbox" id="sound"> Alarm sound</label>
+    </div>
+  </section>
+
+  <section>
+    <h2>Event log <span class="muted" id="evCount"></span></h2>
+    <div id="events"><p class="muted">No events yet.</p></div>
+    <div class="row" style="margin-top:8px">
+      <button onclick="dlEvents()">Events CSV</button>
+      <button onclick="dlScan()">Scan CSV</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>Settings</h2>
+    <div class="grid">
+      <label>Step (°)<input type="number" id="step" min="1" max="20" value="5"></label>
+      <label>Settle (ms)<input type="number" id="settle" min="20" max="500" value="60"></label>
+      <label>Pings / bearing<input type="number" id="pings" min="1" max="5" value="2"></label>
+      <label>Air temp (°C)<input type="number" id="temp" min="-10" max="50" step="0.5" value="20"></label>
+    </div>
+    <div class="row" style="margin-top:8px"><button onclick="applySettings()">Apply</button></div>
+    <p class="muted" id="netInfo"></p>
+  </section>
+</main>
+<div id="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+let S = {}, pSeq = 0, eSeq = 0, bv = -1, baseline = null, firstPoll = true, maxRange = 200;
+const pts = new Map();          // bearing -> {d, b, f, t}
+const scanLog = [];             // every point received, for CSV
+const events = [];              // newest first
+let audioCtx = null, settingsLoaded = false;
+
+function toast(msg) {
+  const t = $('toast'); t.textContent = msg; t.style.display = 'block';
+  clearTimeout(toast.h); toast.h = setTimeout(() => t.style.display = 'none', 2500);
+}
+
+async function api(path) {
+  const r = await fetch(path, {cache: 'no-store'});
+  return r.json();
+}
+
+async function cmd(q) {
+  try {
+    const j = await api('/api/cmd?' + q);
+    if (j.ok === false) toast(j.err);
+  } catch (e) { toast('No connection to ESP32'); }
+}
+
+function ack() { cmd('c=ack'); $('banner').classList.remove('show'); }
+
+function applySettings() {
+  cmd(`c=set&step=${$('step').value}&settle=${$('settle').value}&pings=${$('pings').value}&temp=${$('temp').value}`);
+}
+
+// ---- aim slider (throttled so we don't flood the ESP32)
+let aimTarget = null, aimSent = null;
+$('aim').addEventListener('input', e => { aimTarget = +e.target.value; $('aimVal').textContent = aimTarget + '°'; });
+setInterval(() => {
+  if (aimTarget !== null && aimTarget !== aimSent) { aimSent = aimTarget; cmd('c=aim&angle=' + aimTarget); }
+}, 120);
+
+// ---- alarm feedback
+function beep() {
+  if (!$('sound').checked) return;
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    for (let i = 0; i < 3; i++) {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.frequency.value = 880; o.connect(g); g.connect(audioCtx.destination);
+      const t0 = audioCtx.currentTime + i * 0.35;
+      g.gain.setValueAtTime(0.25, t0); g.gain.setValueAtTime(0, t0 + 0.2);
+      o.start(t0); o.stop(t0 + 0.25);
+    }
+  } catch (e) {}
+}
+$('sound').addEventListener('change', () => {   // unlock audio with a user gesture
+  if ($('sound').checked) { audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); audioCtx.resume(); }
+});
+
+function alertUser(ev) {
+  $('bannerText').textContent = `INTRUDER at ${ev.angle}° · ${fmtM(ev.dist)}`;
+  $('banner').classList.add('show');
+  if (navigator.vibrate) navigator.vibrate([300, 120, 300, 120, 300]);
+  beep();
+}
+
+// ---- formatting
+const fmtM = cm => cm < 0 ? 'no echo' : (cm / 100).toFixed(2) + ' m';
+function fmtTime(ev) {
+  if (ev.epoch > 0) return new Date(ev.epoch * 1000).toLocaleTimeString();
+  return '+' + ev.upt + ' s';
+}
+
+function renderEvents() {
+  $('evCount').textContent = events.length ? `(${events.length})` : '';
+  if (!events.length) { $('events').innerHTML = '<p class="muted">No events yet.</p>'; return; }
+  $('events').innerHTML = events.map(e =>
+    `<div class="ev"><span class="t">${fmtTime(e)}</span><span>${e.angle}°</span>` +
+    `<span>${fmtM(e.dist)}</span><span class="muted">base ${fmtM(e.base)}</span></div>`).join('');
+}
+
+function renderStatus() {
+  const pill = $('pill');
+  pill.className = 'pill';
+  if (S.alarm) { pill.textContent = 'ALARM'; pill.classList.add('alarm'); }
+  else if (S.mode === 'learn') { pill.textContent = `LEARNING ${S.lp}/${S.ls}`; pill.classList.add('learn'); }
+  else if (S.armed) { pill.textContent = 'ARMED'; pill.classList.add('armed'); }
+  else pill.textContent = 'DISARMED';
+  if (!S.alarm) $('banner').classList.remove('show');
+
+  $('sAngle').textContent = S.angle + '°';
+  $('sDist').textContent = S.dist < 0 ? '—' : (S.dist / 100).toFixed(2) + 'm';
+  $('sMode').textContent = S.mode.toUpperCase();
+  $('sRssi').textContent = S.rssi ? S.rssi + '' : '—';
+
+  $('secInfo').textContent =
+    S.mode === 'learn' ? `Learning the room: sweep ${S.lp + 1} of ${S.ls}. Keep the area clear.` :
+    S.armed ? `Armed. Anything ${S.thr} cm+ closer than the room baseline triggers an alarm (2 of 3 pings).` :
+    S.learned ? 'Room learned. Press Arm to start monitoring.' :
+    'Clear the area, then press Learn room (3 sweeps).';
+
+  $('netInfo').textContent = `${S.wifi === 'ap' ? 'Own access point' : 'Home Wi-Fi'} · ${S.ip} · ` +
+    `up ${S.up}s · alarms ${S.alarms}` + (S.push ? ' · phone push on' : '');
+
+  if (!settingsLoaded) {          // fill the settings form once from the device
+    $('step').value = S.step; $('settle').value = S.settle; $('pings').value = S.pings;
+    $('temp').value = S.temp; $('thr').value = S.thr; $('aim').value = S.angle;
+    $('aimVal').textContent = S.angle + '°';
+    settingsLoaded = true;
+  }
+}
+
+// ---- polling loop
+async function poll() {
+  try {
+    const j = await api(`/api/poll?p=${pSeq}&e=${eSeq}`);
+    $('conn').classList.add('ok');
+    if (j.s.ps < pSeq || j.s.es < eSeq) {           // ESP32 rebooted: start over
+      pSeq = 0; eSeq = 0; bv = -1; pts.clear(); settingsLoaded = false;
+      setTimeout(poll, 100); return;
+    }
+    S = j.s;
+    const now = performance.now();
+    for (const [seq, a, d, b, f] of j.p) {
+      pSeq = Math.max(pSeq, seq);
+      pts.set(a, {d, b, f, t: now});
+      scanLog.push([new Date().toISOString(), a, d, b, f]);
+    }
+    if (scanLog.length > 20000) scanLog.splice(0, scanLog.length - 20000);
+    let newest = null;
+    for (const [seq, epoch, upt, angle, dist, base] of j.e) {
+      eSeq = Math.max(eSeq, seq);
+      const ev = {seq, epoch, upt, angle, dist, base};
+      events.unshift(ev); newest = ev;
+    }
+    if (newest) { renderEvents(); if (!firstPoll) alertUser(newest); }
+    if (S.bv !== bv) {
+      bv = S.bv;
+      baseline = S.learned ? await api('/api/baseline') : null;
+    }
+    renderStatus();
+    firstPoll = false;
+  } catch (e) {
+    $('conn').classList.remove('ok');
+  }
+  setTimeout(poll, 300);
+}
+
+// ---- radar drawing
+const cv = $('radar'), ctx = cv.getContext('2d');
+function resize() {
+  const w = cv.clientWidth, dpr = window.devicePixelRatio || 1;
+  cv.width = w * dpr; cv.height = w * 0.56 * dpr; cv.style.height = (w * 0.56) + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+window.addEventListener('resize', resize);
+
+function xy(a, cm, cx, cy, R) {
+  const ang = ($('flip').checked ? 180 - a : a) * Math.PI / 180;
+  const r = Math.min(cm, maxRange) / maxRange * R;
+  return [cx + r * Math.cos(ang), cy - r * Math.sin(ang)];
+}
+
+function draw() {
+  const W = cv.clientWidth, H = W * 0.56;
+  const cx = W / 2, cy = H - 14, R = Math.min(W / 2 - 14, H - 26);
+  ctx.clearRect(0, 0, W, H);
+
+  // grid: range rings + bearing spokes
+  ctx.strokeStyle = '#1c3a24'; ctx.fillStyle = '#4f7a5a'; ctx.lineWidth = 1; ctx.font = '11px system-ui';
+  for (let i = 1; i <= 4; i++) {
+    const r = R * i / 4;
+    ctx.beginPath(); ctx.arc(cx, cy, r, Math.PI, 2 * Math.PI); ctx.stroke();
+    ctx.fillText((maxRange * i / 4 / 100).toFixed(maxRange <= 200 ? 2 : 1) + 'm', cx + 3, cy - r + 12);
+  }
+  for (let a = 0; a <= 180; a += 30) {
+    const [x, y] = xy(a, maxRange, cx, cy, R);
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(x, y); ctx.stroke();
+    const [lx, ly] = xy(a, maxRange * 1.06, cx, cy, R);
+    ctx.fillText(a + '°', lx - 10, Math.min(ly + 4, H - 2));
+  }
+
+  // learned room baseline (clutter map)
+  if (baseline) {
+    ctx.strokeStyle = 'rgba(74,168,255,.55)'; ctx.setLineDash([4, 4]); ctx.beginPath();
+    let started = false;
+    for (let a = 0; a <= 180; a++) {
+      if (baseline[a] === null) continue;
+      const [x, y] = xy(a, baseline[a], cx, cy, R);
+      if (!started) { ctx.moveTo(x, y); started = true; } else ctx.lineTo(x, y);
+    }
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  // returns, fading with age
+  const now = performance.now();
+  for (const [a, p] of pts) {
+    if (p.d < 0) continue;
+    const age = (now - p.t) / 1000, alpha = Math.max(0.15, 1 - age / 12);
+    const [x, y] = xy(a, p.d, cx, cy, R);
+    const col = p.f === 2 ? '255,59,59' : p.f === 1 ? '255,176,32' : '57,255,122';
+    ctx.fillStyle = `rgba(${col},${alpha})`;
+    ctx.beginPath(); ctx.arc(x, y, p.f ? 6 : 3.5, 0, 2 * Math.PI); ctx.fill();
+  }
+
+  // sweep line
+  if (S.angle !== undefined) {
+    const [x, y] = xy(S.angle, maxRange, cx, cy, R);
+    const grad = ctx.createLinearGradient(cx, cy, x, y);
+    grad.addColorStop(0, 'rgba(57,255,122,.05)'); grad.addColorStop(1, 'rgba(57,255,122,.9)');
+    ctx.strokeStyle = grad; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(x, y); ctx.stroke(); ctx.lineWidth = 1;
+  }
+  requestAnimationFrame(draw);
+}
+
+// ---- CSV export
+function download(name, rows) {
+  const blob = new Blob([rows.map(r => r.join(',')).join('\n')], {type: 'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+const stamp = () => new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+function dlScan() {
+  download(`radar_scan_${stamp()}.csv`, [['time', 'bearing_deg', 'range_cm', 'baseline_cm', 'flag'], ...scanLog]);
+}
+function dlEvents() {
+  download(`radar_events_${stamp()}.csv`, [['time', 'bearing_deg', 'range_cm', 'baseline_cm'],
+    ...events.slice().reverse().map(e => [e.epoch ? new Date(e.epoch * 1000).toISOString() : 'uptime+' + e.upt,
+      e.angle, e.dist, e.base])]);
+}
+
+// ---- start
+resize();
+fetch('/api/time?ms=' + Date.now()).catch(() => {});   // give the ESP32 the phone's clock
+poll();
+requestAnimationFrame(draw);
+</script>
+</body>
+</html>
+)rawliteral";
